@@ -10,16 +10,19 @@ from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
+    queryset = Event.objects.all() 
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
     # Users only see their own events
     def get_queryset(self):
-        return Event.objects.filter(organizer=self.request.user)
+        if self.request.user.is_authenticated:
+            return Event.objects.filter(organizer=self.request.user)
+        return Event.objects.none()
 
     # Automatically assign logged-in user
     def perform_create(self, serializer):
@@ -36,7 +39,8 @@ class EventViewSet(viewsets.ModelViewSet):
         if instance.organizer != self.request.user:
             raise PermissionDenied("You can only delete your own events.")
         instance.delete()
-    
+
+    # Public upcoming events
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def upcoming(self, request):
         events = Event.objects.filter(event_datetime__gt=timezone.now())
