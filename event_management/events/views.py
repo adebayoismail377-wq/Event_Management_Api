@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Event
-from .serializers import EventSerializer
+from .serializers import EventSerializer, UserSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -13,6 +13,7 @@ from rest_framework.decorators import action
 
 
 class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -58,6 +59,7 @@ class EventViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
 
     def get_queryset(self):
