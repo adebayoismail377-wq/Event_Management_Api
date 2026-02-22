@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Event
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 class EventSerializer(serializers.ModelSerializer):
 
@@ -20,4 +21,14 @@ class EventSerializer(serializers.ModelSerializer):
         if not data.get('location'):
             raise serializers.ValidationError("Location is required.")
         return data
+    
+class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'password']
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
     
