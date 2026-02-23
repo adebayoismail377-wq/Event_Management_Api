@@ -30,6 +30,8 @@ class EventSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Location is required.")
         return data
     
+    
+    
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 

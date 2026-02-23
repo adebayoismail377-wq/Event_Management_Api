@@ -97,6 +97,30 @@ class EventViewSet(viewsets.ModelViewSet):
         status=status.HTTP_200_OK
     )
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def cancel_registration(self, request, pk=None):
+    event = self.get_object()
+
+    # Check if user is registered
+    if request.user not in event.attendees.all():
+        return Response(
+            {"message": "You are not registered for this event."},
+            status=400
+        )
+
+    # Remove user from attendees
+    event.attendees.remove(request.user)
+
+    # 🔥 Move first waitlisted user into attendees
+    if event.waitlist.exists():
+        next_user = event.waitlist.first()
+        event.waitlist.remove(next_user)
+        event.attendees.add(next_user)
+
+    return Response(
+        {"message": "Registration cancelled successfully."}
+    )
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
