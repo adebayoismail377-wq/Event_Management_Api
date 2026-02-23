@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework import status
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all() 
@@ -61,6 +61,41 @@ class EventViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(events, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def register(self, request, pk=None):
+    event = self.get_object()
+
+    # Already registered
+    if request.user in event.attendees.all():
+        return Response(
+            {"message": "You are already registered."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # If event is full
+    if event.is_full():
+        # Add to waitlist if not already
+        if request.user in event.waitlist.all():
+            return Response(
+                {"message": "You are already on the waitlist."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        event.waitlist.add(request.user)
+
+        return Response(
+            {"message": "Event is full. You have been added to the waitlist."},
+            status=status.HTTP_200_OK
+        )
+
+    # Otherwise register normally
+    event.attendees.add(request.user)
+
+    return Response(
+        {"message": "Successfully registered for the event!"},
+        status=status.HTTP_200_OK
+    )
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

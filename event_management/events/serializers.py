@@ -4,6 +4,14 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 class EventSerializer(serializers.ModelSerializer):
+    available_spots = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Event
+        fields = '__all__'
+
+    def get_available_spots(self, obj):
+        return obj.max_capacity - obj.attendees.count()
 
     class Meta:
         model = Event

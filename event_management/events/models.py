@@ -12,6 +12,28 @@ class Event(models.Model):
     capacity = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    organizer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    attendees = models.ManyToManyField(
+        User,
+        related_name='registered_events',
+        blank=True
+    )
+
+    waitlist = models.ManyToManyField(
+        User,
+        related_name='waitlisted_events',
+        blank=True
+    )
+
+    max_capacity = models.PositiveIntegerField(default=250)
+    def is_full(self):
+        return self.attendees.count() >= self.max_capacity
+
+
     def __str__(self):
         return self.title
 
@@ -23,4 +45,5 @@ class EventRegistration(models.Model):
 
     class Meta:
         unique_together = ('event', 'user')
+
 
