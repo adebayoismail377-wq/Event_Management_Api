@@ -29,7 +29,7 @@ class Event(models.Model):
         blank=True
     )
 
-    max_capacity = models.PositiveIntegerField(default=250)
+    max_capacity = models.PositiveIntegerField(default=3)
     def is_full(self):
         return self.attendees.count() >= self.max_capacity
 
