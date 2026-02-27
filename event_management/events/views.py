@@ -1,20 +1,18 @@
-# Create your views here.
 from django.shortcuts import render
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import Event
-from .serializers import EventSerializer, UserSerializer
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import PermissionDenied
-from django.utils import timezone
-from django.contrib.auth.models import User
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
+from django.utils import timezone
+from django.contrib.auth.models import User
+
+from .models import Event
+from .serializers import EventSerializer, UserSerializer
+
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all() 
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -61,65 +59,67 @@ class EventViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(events, many=True)
         return Response(serializer.data)
-    
+
+    # Register for event
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def register(self, request, pk=None):
-    event = self.get_object()
+        event = self.get_object()
 
-    # Already registered
-    if request.user in event.attendees.all():
-        return Response(
-            {"message": "You are already registered."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # If event is full
-    if event.is_full():
-        # Add to waitlist if not already
-        if request.user in event.waitlist.all():
+        # Already registered
+        if request.user in event.attendees.all():
             return Response(
-                {"message": "You are already on the waitlist."},
+                {"message": "You are already registered."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        event.waitlist.add(request.user)
+        # If event is full
+        if event.is_full():
+            # Already on waitlist
+            if request.user in event.waitlist.all():
+                return Response(
+                    {"message": "You are already on the waitlist."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            event.waitlist.add(request.user)
+
+            return Response(
+                {"message": "Event is full. You have been added to the waitlist."},
+                status=status.HTTP_200_OK
+            )
+
+        # Otherwise register normally
+        event.attendees.add(request.user)
 
         return Response(
-            {"message": "Event is full. You have been added to the waitlist."},
+            {"message": "Successfully registered for the event!"},
             status=status.HTTP_200_OK
         )
 
-    # Otherwise register normally
-    event.attendees.add(request.user)
-
-    return Response(
-        {"message": "Successfully registered for the event!"},
-        status=status.HTTP_200_OK
-    )
-
+    # Cancel registration
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def cancel_registration(self, request, pk=None):
-    event = self.get_object()
+        event = self.get_object()
 
-    # Check if user is registered
-    if request.user not in event.attendees.all():
+        if request.user in event.attendees.all():
+            event.attendees.remove(request.user)
+
+            # Auto promote from waitlist
+            if event.waitlist.exists():
+                next_user = event.waitlist.first()
+                event.waitlist.remove(next_user)
+                event.attendees.add(next_user)
+
+            return Response(
+                {"message": "Registration cancelled successfully."},
+                status=status.HTTP_200_OK
+            )
+
         return Response(
-            {"message": "You are not registered for this event."},
-            status=400
+            {"error": "You are not registered for this event."},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Remove user from attendees
-    event.attendees.remove(request.user)
-
-    # 🔥 Move first waitlisted user into attendees
-    if event.waitlist.exists():
-        next_user = event.waitlist.first()
-        event.waitlist.remove(next_user)
-        event.attendees.add(next_user)
-
-    return Response(
-        {"message": "Registration cancelled successfully."}
-    )
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
