@@ -113,24 +113,41 @@ class EventViewSet(viewsets.ModelViewSet):
             "message": f"Registration successful ({status_value})."
         })
     
+    
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def cancel_registration(self, request, pk=None):
 
-        event = self.get_object()
-        user = request.user
+      event = self.get_object()
+      user = request.user
 
-        registration = EventRegistration.objects.filter(
+        # Find registration
+      registration = EventRegistration.objects.filter(
         event=event,
         user=user
-         ).first()
+      ).first()
 
-        if not registration:
-            raise ValidationError("You are not registered for this event.")
+      if not registration:
+        raise ValidationError("You are not registered for this event.")
 
-        registration.status = "cancelled"
-        registration.save()
-    
-        return Response ({"message": "Registration cancelled successfully."})
+    # Cancel user registration
+      registration.status = "cancelled"
+      registration.save()
+
+    # ⭐ AUTO PROMOTION LOGIC (Very Important)
+      if not event.is_full():
+
+        next_waitlisted = EventRegistration.objects.filter(
+            event=event,
+            status="waitlisted"
+        ).order_by("registered_at").first()
+
+        if next_waitlisted:
+            next_waitlisted.status = "confirmed"
+            next_waitlisted.save()
+
+        return Response({
+        "message": "Registration cancelled and waitlist promoted if available."
+    })
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def browse(self, request):
