@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 
 from .models import Event, EventRegistration
 from .serializers import EventSerializer, UserSerializer
+from .serializers import EventRegistrationSerializer
 
 User = get_user_model()
 
@@ -173,6 +174,19 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(events, many=True)
         return Response(serializer.data)
     
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def registrations(self, request, pk=None):
+
+        event = self.get_object()
+
+        registrations = EventRegistration.objects.filter(
+        event=event
+        ).order_by("registered_at")
+
+        serializer = EventRegistrationSerializer(registrations, many=True)
+
+        return Response(serializer.data)
+    
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -187,3 +201,5 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return [AllowAny()]
         return [IsAuthenticated()]
+    
+   
