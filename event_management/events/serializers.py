@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from .models import Event
 from django.utils import timezone
-from accounts.models import CustomUser 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 class EventSerializer(serializers.ModelSerializer):
     available_spots = serializers.SerializerMethodField()
@@ -9,14 +12,10 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = '__all__'
+        read_only_fields = ['organizer', 'created_at']
 
     def get_available_spots(self, obj):
         return obj.max_capacity - obj.attendees.count()
-
-    class Meta:
-        model = Event
-        fields = '__all__'
-        read_only_fields = ['organizer', 'created_at']
 
     def validate_event_datetime(self, value):
         if value < timezone.now():
@@ -29,15 +28,14 @@ class EventSerializer(serializers.ModelSerializer):
         if not data.get('location'):
             raise serializers.ValidationError("Location is required.")
         return data
-    
-    
-    
+
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ['id', 'username', 'email', 'password', 'role']
 
     def create(self, validated_data):
-        return CustomUser.objects.create_user(**validated_data)
+        return User.objects.create_user(**validated_data)
