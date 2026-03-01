@@ -25,8 +25,10 @@ class Event(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_full(self):
-        confirmed_count = self.registrations.filter(status="confirmed").count()
-        return confirmed_count >= self.max_capacity
+        return EventRegistration.objects.filter(
+            event=self,
+            status="confirmed"
+        ).count() >= self.max_capacity
 
     def __str__(self):
         return self.title

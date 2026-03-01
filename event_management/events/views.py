@@ -118,35 +118,42 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def cancel_registration(self, request, pk=None):
 
-      event = self.get_object()
-      user = request.user
+         event = self.get_object()
+         user = request.user
 
-        # Find registration
-      registration = EventRegistration.objects.filter(
-        event=event,
-        user=user
-      ).first()
-
-      if not registration:
-        raise ValidationError("You are not registered for this event.")
-
-    # Cancel user registration
-      registration.status = "cancelled"
-      registration.save()
-
-    # ⭐ AUTO PROMOTION LOGIC (Very Important)
-      if not event.is_full():
-
-        next_waitlisted = EventRegistration.objects.filter(
+    # 🔍 Find the user's registration
+         registration = EventRegistration.objects.filter(
             event=event,
-            status="waitlisted"
-        ).order_by("registered_at").first()
+            user=user
+         ).first()
 
-        if next_waitlisted:
-            next_waitlisted.status = "confirmed"
-            next_waitlisted.save()
+         if not registration:
+            raise ValidationError("You are not registered for this event.")
 
-        return Response({
+    # ❌ Cancel the registration
+         registration.status = "cancelled"
+         registration.save()
+
+    # ⭐ AUTO WAITLIST PROMOTION LOGIC
+
+         confirmed_count = EventRegistration.objects.filter(
+            event=event,
+            status="confirmed"
+         ).count()
+
+    # If there is space after cancellation
+         if confirmed_count < event.max_capacity:
+
+            next_waitlisted = EventRegistration.objects.filter(
+                event=event,
+                status="waitlisted"
+            ).order_by("registered_at").first()
+
+            if next_waitlisted:
+               next_waitlisted.status = "confirmed"
+               next_waitlisted.save()
+
+         return Response({
         "message": "Registration cancelled and waitlist promoted if available."
     })
 
