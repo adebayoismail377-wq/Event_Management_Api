@@ -22,13 +22,18 @@ class EventViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not user.is_authenticated:
-            return Event.objects.none()
+           return Event.objects.none()
 
-        if user.role == "organizer":
-            return Event.objects.filter(organizer=user)
+    # Only event creator (organizer) can view their event
+        return Event.objects.filter(organizer=user)
+    def retrieve(self, request, *args, **kwargs):
+        event = self.get_object()
 
-        return Event.objects.all()
+        if event.organizer != request.user:
+          raise PermissionDenied("You are not allowed to view this event.")
 
+        return super().retrieve(request, *args, **kwargs)
+    
     # Event creation restricted to organizers
     def perform_create(self, serializer):
         if self.request.user.role != "organizer":
@@ -127,6 +132,30 @@ class EventViewSet(viewsets.ModelViewSet):
     
         return Response ({"message": "Registration cancelled successfully."})
 
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def browse(self, request):
+
+        events = Event.objects.filter(event_datetime__gt=timezone.now())
+
+        title = request.query_params.get('title')
+        location = request.query_params.get('location')
+
+        if title:
+            events = events.filter(title__icontains=title)
+
+        if location:
+           events = events.filter(location__icontains=location)
+
+         # Pagination support
+        page = self.paginate_queryset(events)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(events, many=True)
+        return Response(serializer.data)
+    
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
