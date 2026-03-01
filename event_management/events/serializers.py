@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Event
 from django.utils import timezone
-from django.contrib.auth.models import User
+from accounts.models import CustomUser 
 
 class EventSerializer(serializers.ModelSerializer):
     available_spots = serializers.SerializerMethodField()
@@ -36,9 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'password']
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'password', 'role']
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
-    
+        return CustomUser.objects.create_user(**validated_data)
