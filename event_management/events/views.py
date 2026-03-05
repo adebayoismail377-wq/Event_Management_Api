@@ -22,11 +22,16 @@ class EventViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if not user.is_authenticated:
-           return Event.objects.none()
+    # Allow access to events for registration and browsing
+        if self.action in ["register", "cancel_registration", "browse", "upcoming"]:
+            return Event.objects.all()
 
-    # Only event creator (organizer) can view their event
-        return Event.objects.filter(organizer=user)
+    # Organizers see only their own events
+        if user.is_authenticated:
+           return Event.objects.filter(organizer=user)
+
+        return Event.objects.none()
+    
     def retrieve(self, request, *args, **kwargs):
         event = self.get_object()
 
