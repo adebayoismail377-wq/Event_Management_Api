@@ -56,4 +56,47 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
 ]
 
-  
+  from django.contrib import admin
+from django.urls import path, include
+from django.http import JsonResponse
+from rest_framework.routers import DefaultRouter
+from events.views import EventViewSet, UserViewSet
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+router = DefaultRouter()
+router.register(r'events', EventViewSet)
+router.register(r'users', UserViewSet)
+
+
+def api_home(request):
+    return JsonResponse({
+        "message": "Welcome to Event Management API",
+        "available_endpoints": {
+            "admin": "/admin/",
+            "events": "/api/events/",
+            "users": "/api/users/",
+            "login": "/api/token/",
+        }
+    })
+
+
+urlpatterns = [
+    # Homepage
+    path('', api_home),
+
+    # Admin
+    path('admin/', admin.site.urls),
+
+    # Router endpoints
+    path('api/', include(router.urls)),
+
+    # Authentication
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # DRF login
+    path('api-auth/', include('rest_framework.urls')),
+]
