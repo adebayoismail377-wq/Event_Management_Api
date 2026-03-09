@@ -126,7 +126,7 @@ SQLite was chosen because it is lightweight and easy to deploy without requiring
 ## 1. Clone Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/event-management-api.git
+git clone https://github.com/adebayoismail377-wq/Event_Management_Api.git
 cd event-management-api
 ```
 
